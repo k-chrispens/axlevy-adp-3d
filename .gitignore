@@ -1,0 +1,13 @@
+/.ipynb_checkpoints/
+/images/.ipynb_checkpoints/
+/data/.ipynb_checkpoints/
+/src/.ipynb_checkpoints/
+
+/data/cifs/*
+!/data/cifs/8ok3.cif
+!/data/cifs/7pzt.cif
+!/data/cifs/7pzt_MA_2.0A.cif
+/data/mrcs/*
+/data/mrcs/7pzt_2.0A.mrc
+
+*.sh
