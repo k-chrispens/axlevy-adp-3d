@@ -8,6 +8,6 @@
 !/data/cifs/7pzt.cif
 !/data/cifs/7pzt_MA_2.0A.cif
 /data/mrcs/*
-/data/mrcs/7pzt_2.0A.mrc
+!/data/mrcs/7pzt_2.0A.mrc
 
 *.sh

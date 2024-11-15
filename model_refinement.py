@@ -110,6 +110,7 @@ def main(args):
     V_m = torch.zeros_like(Z)
     V_d = torch.zeros_like(Z)
     V_s = torch.zeros_like(Z)
+    V_c = torch.zeros_like(Z)
     
     def sample_chi(X, t=0):
         print("Sampling side chain angles")
@@ -144,16 +145,7 @@ def main(args):
             raise NotImplementedError
 
     def lr_fn(epoch):
-        if args.lr_schedule == 'constant':
-            return args.lr_density
-        elif args.lr_schedule == 'linear':
-            return args.lr_density * resolution_fn(epoch) / args.resolution_cutoff_start
-        elif args.lr_schedule == 'quad':
-            return args.lr_density * (resolution_fn(epoch) / args.resolution_cutoff_start) ** 2
-        elif args.lr_schedule == 'cube':
-            return args.lr_density * (resolution_fn(epoch) / args.resolution_cutoff_start) ** 3
-        else:
-            raise NotImplementedError
+        return args.lr_density
 
     def resolution_fn(epoch):
         if epoch < args.activate_resolution_drop:
@@ -247,12 +239,28 @@ def main(args):
             loss_s = torch.tensor([0.]).float().cuda()
         return grad_Z_s, loss_s
 
+    def get_gradient_Z_c(Z):
+        if args.lr_inter_ca > 0.:
+            with (torch.enable_grad()):
+                Z.requires_grad_(True)
+                _X = multiply_R(Z, C_gt)
+                distances = torch.linalg.norm(_X[:, 1:, 1] - _X[:, :-1, 1])
+                loss_c = ((distances - 3.8) ** 2).sum()
+                loss_c.backward()
+                grad_Z_c = Z.grad
+            Z.requires_grad_(False)
+        else:
+            grad_Z_c = torch.zeros(*Z.shape).float().to(X.device)
+            loss_c = torch.tensor([0.]).float().cuda()
+        return grad_Z_c, loss_c
+    
     trajectory = [torch.clone(X_gt[:, mask_gt]).detach().cpu().numpy(),
                   torch.clone(Y[:1]).detach().cpu().numpy(),
                   (torch.clone(X).detach().cpu().numpy(), 'initial state')]
     
     metrics = {'epoch': [], 'rmsd': [], 't': [], 'loss_m': [], 'loss_d': [], 'rmsd_ca': [],
-               'resolution': [], 'loss_s': [], 'lr_density': [], 'loss_d_per_sample': [], 'sampling_rate': []}
+               'resolution': [], 'loss_s': [], 'lr_density': [], 'loss_d_per_sample': [], 'sampling_rate': [],
+               'loss_c': []}
 
     print("--- Optimization starts now ---")
     for epoch in range(args.epochs):
@@ -275,7 +283,10 @@ def main(args):
         grad_Z_s, loss_s = get_gradient_Z_s(Z0, t, epoch)
         V_s = args.rho_sequence * V_s + args.lr_sequence * grad_Z_s
 
-        Z0 = Z0 - V_m - V_d - V_s
+        grad_Z_c, loss_c = get_gradient_Z_c(Z0)
+        V_c = args.rho_inter_ca * V_c + args.lr_inter_ca * grad_Z_c
+
+        Z0 = Z0 - V_m - V_d - V_s - V_c
 
         # replicate models with lowest density error
         if args.select_best_every > 0 and epoch >= args.activate_replication and epoch % args.select_best_every == 0:
@@ -323,6 +334,7 @@ def main(args):
             metrics['loss_d'].append(loss_d.item())
             metrics['loss_d_per_sample'].append(loss_d_per_sample)
             metrics['loss_s'].append(loss_s.item())
+            metrics['loss_c'].append(loss_c.item())
             metrics['resolution'].append(resolution_fn(epoch))
             metrics['sampling_rate'].append(sampling_rate_fn(epoch))
             metrics['lr_density'].append(lr_fn(epoch))
@@ -381,40 +393,53 @@ if __name__ == "__main__":
 
     # optimization parameters
     parser.add_argument('--epochs', type=int, default=4000, help="Number of epochs.")
-    parser.add_argument('--population-size', type=int, default=8, help="Number of atomic models to simultaneously optimize.")
+    parser.add_argument('--population-size', type=int, default=16, help="Number of atomic models to simultaneously optimize.")
     parser.add_argument('--lr-model', type=float, default=0.1, help="Learning rate for the model loss.")
     parser.add_argument('--rho-model', type=float, default=0.9, help="Momentum for the model loss.")
-    parser.add_argument('--lr-density', type=float, default=3e-5, help="Learning rate for the density loss.")
+    parser.add_argument('--lr-density', type=float, default=1e-2, help="Learning rate for the density loss.")
     parser.add_argument('--rho-density', type=float, default=0.9, help="Momentum for the density loss.")
     parser.add_argument('--lr-sequence', type=float, default=1e-5, help="Learning rate for the sequence loss.")
     parser.add_argument('--rho-sequence', type=float, default=0.9, help="Momentum for the sequence loss.")
+    parser.add_argument('--lr-inter-ca', type=float, default=0.0, help="Learning rate for the inter-CA loss.")
+    parser.add_argument('--rho-inter-ca', type=float, default=0.9, help="Momentum for the inter-CA loss.")
+    parser.add_argument('--preconditioning-model', type=int, default=1, help="Flag to use preconditioning on the model loss.")
+    parser.add_argument('--normalize-detach', type=int, default=0, help="Normalize Fourier map before computing the density loss.")
+    parser.add_argument('--de-activate-model', type=int, default=-1, help="Number of epochs before de-activating the model loss (-1 to always activate).")
+    parser.add_argument('--activate-density', type=int, default=0, help="Number of epochs before activating density loss.")
+    parser.add_argument('--activate-sequence', type=int, default=3000, help="Number of epochs before activating sequence loss.")
+
+    # diffusion parameters
+    parser.add_argument('--use-diffusion', type=int, default=1, help="Flag to use the diffusion model.")
     parser.add_argument('--temporal-schedule', type=str, default='sqrt', choices=['sqrt', 'linear', 'constant'], help="Type of temporal schedule.")
     parser.add_argument('--t', type=float, default=1.0, help="Initial diffusion time (between 0 and 1).")
-    parser.add_argument('--preconditioning-model', type=int, default=1, help="Flag to use preconditioning on the model loss.")
-    parser.add_argument('--resolution-cutoff-start', type=float, default=15.0, help="Initial resolution to compute the (Fourier) density maps up to.")
-    parser.add_argument('--resolution-cutoff-end', type=float, default=5.0, help="Final resolution to compute the (Fourier) density maps up to.")
-    parser.add_argument('--n-voxels-per-batch', type=int, default=1024, help="Number of voxels per batch to avoid OOM when computing full density maps.")
+
+    # resolution
+    parser.add_argument('--resolution-cutoff-start', type=float, default=1.5, help="Initial resolution to compute the (Fourier) density maps up to.")
+    parser.add_argument('--resolution-cutoff-end', type=float, default=1.5, help="Final resolution to compute the (Fourier) density maps up to.")
+    parser.add_argument('--activate-resolution-drop', type=int, default=0, help="Number of epochs before changing the resolution.")
+
+    # random sampling
+    parser.add_argument('--sampling-rate-schedule', type=str, default='constant', choices=['constant', 'linear', 'exp'], help='Type of schedule for the sampling rate.')
+    parser.add_argument('--sampling-rate-start', type=float, default=0.1, help='Initial sampling rate.')
+    parser.add_argument('--sampling-rate-end', type=float, default=1.0, help='Final sampling rate.')
+
+    # side-chain parameters
     parser.add_argument('--sample-chi-every', type=int, default=100, help="Frequency (in epochs) of side-chain sampling.")
-    parser.add_argument('--use-gt-chi', type=int, default=0)
-    parser.add_argument('--activate-density', type=int, default=-1, help="Number of epochs before activating density loss.")
-    parser.add_argument('--activate-sequence', type=int, default=3000, help="Number of epochs before activating sequence loss.")
-    parser.add_argument('--de-activate-model', type=int, default=-1)
-    parser.add_argument('--activate-resolution-drop', type=int, default=3000, help="Number of epochs before changing the resolution.")
-    parser.add_argument('--lr-schedule', type=str, default='cube', choices=['constant', 'linear', 'quad', 'cube'], help="Scaling law between learning rate and resolution.")
-    parser.add_argument('--sampling-rate-schedule', type=str, default='constant')
-    parser.add_argument('--sampling-rate-start', type=float, default=1.0)
-    parser.add_argument('--sampling-rate-end', type=float, default=1.0)
-    parser.add_argument('--normalize-detach', type=int, default=1)
-    parser.add_argument('--use-diffusion', type=int, default=1, help="Flag to use the diffusion model.")
-    parser.add_argument('--replication-factor', type=int, default=4)
-    parser.add_argument('--activate-replication', type=int, default=1)
-    parser.add_argument('--select-best-every', type=int, default=-1)
+    parser.add_argument('--use-gt-chi', type=int, default=0, help="Flag to use ground truth side-chain angles, for debugging purposes.")
+    
+    # genetic parameters
+    parser.add_argument('--replication-factor', type=int, default=8, help='Number of replications at each selection step.')
+    parser.add_argument('--activate-replication', type=int, default=1, help="Number of epochs to wait before activating the selection/replication.")
+    parser.add_argument('--select-best-every', type=int, default=500, help='Frequency (in epochs) of selection/replication.')
 
     # initialization parameters
     parser.add_argument('--seed', type=int, default=1, help="Random seed.")
     parser.add_argument('--init-gt', type=int, default=0, help="Flag to initialize the model from the deposited CIF, for debugging purposes.")
     parser.add_argument('--std-dev-init', type=float, default=0.0, help="Intensity of Gaussian random noise added on ground truth.")
     parser.add_argument('--eps-init', type=float, default=0.0, help="Size of initial deviation to ground truth in the direction (1, 1, 1).")
+
+    # other parameters
+    parser.add_argument('--n-voxels-per-batch', type=int, default=1024, help="Number of voxels per batch to avoid OOM when computing full density maps.")
 
     # logging parameters
     parser.add_argument('--log-every', type=int, default=10, help="Frequency (in epochs) for logging.")

@@ -7,10 +7,10 @@ from scipy.ndimage import zoom
 KEY_TO_LABEL = {'loss': 'Loss', 'rmsd': 'RMSD', 'lr_density': 'Learning Rate Density', 't': 'Diffusion Time',
                 'loss_d': 'Density Error', 'loss_m': 'Model Error', 'loss_s': 'Sequence Loss',
                 'loss_dist': 'Distance Error', 'rmsd_ca': 'RMSD CA', 'rho_hqs': 'Rho HQS', 'resolution': 'Resolution',
-                'sampling_rate': 'Sampling Rate'}
+                'sampling_rate': 'Sampling Rate', 'loss_c': 'Inter-CA Loss'}
 KEY_TO_LOG = {'loss': True, 'rmsd': True, 'lr_density': True, 't': False, 'loss_d': False, 'loss_m': True,
               'loss_s': True, 'loss_dist': True, 'rmsd_ca': True, 'rho_hqs': True, 'resolution': False,
-              'sampling_rate': False}
+              'sampling_rate': False, 'loss_c': True}
 
 
 def plot_density(density, extent=1., res=32):

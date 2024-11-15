@@ -51,10 +51,10 @@ molmap #1 2.0 gridSpacing 0.5 edgePadding 50
 An incomplete model was obtained with [ModelAngelo](https://github.com/3dem/model-angelo), using the default parameters.
 
 ```
-python model_refinement.py -o /path/to/output/directory --mrc data/mrcs/7pzt_2.0A.mrc --ma-cif data/cifs/7pzt_MA_2.0A.cif --pdb data/pdbs/7pzt.pdb
+python model_refinement.py -o /path/to/output/directory --mrc data/mrcs/7pzt_2.0A.mrc --ma-cif data/cifs/7pzt_MA_2.0A.cif --pdb data/pdbs/7pzt.pdb --unpad-len 85
 ```
 
-[evaluate RMSD]
+[plot RMSD]
 
 ## Troubleshooting
 
