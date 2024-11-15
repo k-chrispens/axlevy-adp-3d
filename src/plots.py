@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from scipy.ndimage import zoom
+import torch
 
 KEY_TO_LABEL = {'loss': 'Loss', 'rmsd': 'RMSD', 'lr_density': 'Learning Rate Density', 't': 'Diffusion Time',
                 'loss_d': 'Density Error', 'loss_m': 'Model Error', 'loss_s': 'Sequence Loss',
@@ -108,5 +109,30 @@ def plot_metric(metrics, key, name):
     if KEY_TO_LOG[key]:
         plt.yscale('log')
     plt.grid(True)
+    plt.show()
+    plt.savefig(name, bbox_inches='tight')
+
+
+def plot_rmsd_ca_vs_completeness(X_gt, X_ma, X, mask_gt, mask_ma, name):
+    n_residues = X.shape[1]
+    completeness_ma = 100. * mask_ma.sum().item() / n_residues
+    
+    distance_sq_ma = ((X_ma[:, mask_gt * mask_ma, 1] - X_gt[:, mask_gt * mask_ma, 1]) ** 2).sum(-1)
+    rmsd_ma = torch.sqrt(distance_sq_ma.mean()).item()
+
+    distance_sq = ((X[:, mask_gt, 1] - X_gt[:, mask_gt, 1]) ** 2).sum(-1).cpu().numpy()
+    rmsd_sorted = np.sqrt(np.cumsum(np.sort(distance_sq)) / (np.arange(mask_gt.sum().item()) + 1))
+    completeness = 100. * np.arange(mask_gt.sum().item()) / n_residues
+
+    plt.figure(figsize=(5, 3), dpi=200)
+    plt.plot([completeness_ma], [rmsd_ma], marker='*', color='r', markeredgecolor='k', linestyle='', markersize=20, label='MA')
+    plt.plot(completeness, rmsd_sorted, color='teal', label='ADP-3D', linewidth=3)
+    plt.xlim(0, 100)
+    plt.ylim(0.05, 2. * np.max(rmsd_sorted))
+    plt.ylabel('RMSD CA')
+    plt.xlabel('Completeness')
+    plt.legend(loc='best')
+    plt.yscale('log')
+    plt.grid(which='both')
     plt.show()
     plt.savefig(name, bbox_inches='tight')

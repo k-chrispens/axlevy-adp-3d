@@ -10,7 +10,7 @@ from chroma import Protein
 from chroma import Chroma
 from chroma.layers.structure.rmsd import CrossRMSD
 
-from src.plots import plot_metric, save_trajectory
+from src.plots import plot_metric, save_trajectory, plot_rmsd_ca_vs_completeness
 from src.cif_utils import ma_cif_to_X
 from src.fft import ifft_density
 from src.pbe_solvers import RealisticSolver
@@ -79,11 +79,11 @@ def main(args):
         mask_ma = mask_boundaries.reshape(-1) > 0.5
     delta = (X_gt[0, mask_ma * mask_gt.cpu()] - X_ma[0, mask_ma * mask_gt.cpu()]).mean(dim=(0, 1))
     X_ma += delta  # align the incomplete model on X_gt (which should be aligned with the density)
-    Y = X_ma[:, mask_ma > 0.5]
+    Y = X_ma[:, mask_ma]
 
     def mR_fun(z):
         z = z.reshape(-1, n_residues, 4, 3)
-        return multiply_R(z, C_gt.expand(z.shape[0], -1))[:, mask_ma > 0.5].reshape(z.shape[0], -1).permute(1, 0)
+        return multiply_R(z, C_gt.expand(z.shape[0], -1))[:, mask_ma].reshape(z.shape[0], -1).permute(1, 0)
 
     Z = torch.eye(n_residues * 12).cuda()
     mR_mat = mR_fun(Z).cpu().numpy()
@@ -167,12 +167,11 @@ def main(args):
     
     def density_error(d, d_gt, mode='mean'):
         if mode == 'sum':
-            # return (torch.abs(d - d_gt) ** 2).sum(), (torch.abs(d.reshape(d.shape[0], -1) - d_gt.reshape(1, -1)) ** 2).sum(dim=-1).detach()
             if args.normalize_detach:
                 norm = torch.linalg.norm(d.reshape(d.shape[0], -1), dim=-1, keepdim=True).detach()
                 norm_gt = torch.linalg.norm(d_gt).detach()
             else:
-                norm = 4375.0
+                norm = 4375.0  # hard-coded parameter -- has roughly the same role as the learning rate
                 norm_gt = 1.
             neg_scalar_prod = (-torch.real(d.reshape(d.shape[0], -1) * d_gt.reshape(1, -1)) / (norm * norm_gt)).sum(-1)
             return neg_scalar_prod.sum(), neg_scalar_prod.detach()
@@ -189,7 +188,7 @@ def main(args):
                     Sm1Um1Y = Um1Y / S
                     loss_m = ((torch.bmm(Vh, _Z.reshape(Z.shape[0], -1, 1))[:, :Um1.shape[1], 0] - Sm1Um1Y) ** 2).sum()
                 else:
-                    loss_m = ((multiply_R(_Z, C_gt)[:, mask_ma > 0.5] - Y) ** 2).sum()
+                    loss_m = ((multiply_R(_Z, C_gt)[:, mask_ma] - Y) ** 2).sum()
                 loss_m.backward()
                 grad_Z_m = Z.grad
             Z.requires_grad_(False)
@@ -375,6 +374,9 @@ def main(args):
     print(f"Saving {args.outdir}/{args.outdir.split('/')[-1]}.mp4")
     save_trajectory(trajectory, f"{args.outdir}/{args.outdir.split('/')[-1]}.mp4")
 
+    print(f"Saving {args.outdir}/rmsd_ca_vs_completeness.png")
+    plot_rmsd_ca_vs_completeness(X_gt, X_ma, X[idx_best][None], mask_gt.cpu(), mask_ma, f"{args.outdir}/rmsd_ca_vs_completeness.png")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -394,7 +396,7 @@ if __name__ == "__main__":
     # optimization parameters
     parser.add_argument('--epochs', type=int, default=4000, help="Number of epochs.")
     parser.add_argument('--population-size', type=int, default=16, help="Number of atomic models to simultaneously optimize.")
-    parser.add_argument('--lr-model', type=float, default=0.1, help="Learning rate for the model loss.")
+    parser.add_argument('--lr-model', type=float, default=1e-2, help="Learning rate for the model loss.")
     parser.add_argument('--rho-model', type=float, default=0.9, help="Momentum for the model loss.")
     parser.add_argument('--lr-density', type=float, default=1e-2, help="Learning rate for the density loss.")
     parser.add_argument('--rho-density', type=float, default=0.9, help="Momentum for the density loss.")
@@ -428,12 +430,12 @@ if __name__ == "__main__":
     parser.add_argument('--use-gt-chi', type=int, default=0, help="Flag to use ground truth side-chain angles, for debugging purposes.")
     
     # genetic parameters
-    parser.add_argument('--replication-factor', type=int, default=8, help='Number of replications at each selection step.')
+    parser.add_argument('--replication-factor', type=int, default=2, help='Number of replications at each selection step.')
     parser.add_argument('--activate-replication', type=int, default=1, help="Number of epochs to wait before activating the selection/replication.")
     parser.add_argument('--select-best-every', type=int, default=500, help='Frequency (in epochs) of selection/replication.')
 
     # initialization parameters
-    parser.add_argument('--seed', type=int, default=1, help="Random seed.")
+    parser.add_argument('--seed', type=int, default=0, help="Random seed.")
     parser.add_argument('--init-gt', type=int, default=0, help="Flag to initialize the model from the deposited CIF, for debugging purposes.")
     parser.add_argument('--std-dev-init', type=float, default=0.0, help="Intensity of Gaussian random noise added on ground truth.")
     parser.add_argument('--eps-init', type=float, default=0.0, help="Size of initial deviation to ground truth in the direction (1, 1, 1).")

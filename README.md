@@ -1,12 +1,12 @@
 # ADP-3D: Solving Inverse Problems in Protein Space Using Diffusion-Based Priors
 
-## Welcome to ADP-3D's codebase!
+## Welcome to ADP-3D's Codebase!
 
 [Link to the paper](https://arxiv.org/abs/2406.04239)
 
 [Link to the website](https://axel-levy.github.io/adp-3d/)
 
-ADP-3D (Atomic Denoising Priors for 3D Reconstruction) is a method to leverage a pre-trained diffusion model in protein space as a prior to solve 3D reconstruction problems.
+ADP-3D (Atomic Denoising Priors for 3D Reconstruction) is a method to leverage a pretrained diffusion model in protein space as a prior to solve 3D reconstruction problems.
 
 ![method](images/method_white.png)
 
@@ -44,6 +44,8 @@ We provide a example for the "distances-to-structure" task with [PDB:8ok3](https
 python distances_to_structure.py -o /path/to/output/directory -c data/cifs/8ok3.cif --n-distances 500 --lr-distance 0.4
 ```
 
+Once your experiment is finished, you can find the loss curves, RMSD curves and the final structure in the output directory.
+
 ## Model Refinement
 
 We provide an example with [PDB:7PZT](https://www.rcsb.org/structure/7PZT). We generated the density map in [ChimeraX](https://www.cgl.ucsf.edu/chimerax/) from the deposited structure with:
@@ -55,11 +57,12 @@ An incomplete model was obtained with [ModelAngelo](https://github.com/3dem/mode
 
 To launch your experiment, run:
 ```
-python model_refinement.py -o /path/to/output/directory --mrc data/mrcs/7pzt_2.0A.mrc --ma-cif data/cifs/7pzt_MA_2.0A.cif --pdb data/pdbs/7pzt.pdb --unpad-len 85
+python model_refinement.py -o /path/to/output/directory --mrc data/mrcs/7pzt_2.0A.mrc --ma-cif data/cifs/7pzt_MA_2.0A.cif --cif data/cifs/7pzt.cif --unpad-len 85
 ```
 We use the `unpad_len` parameter to remove empty voxels from the edges of the density map and speed up computation. Do not forget to change this parameter when using a different input density map.
 
-[plot RMSD]
+In the output directory, you will also find a plot showing the completeness of the model vs. RMSD:
+![rmsd](images/rmsd_ca_vs_completeness.png)
 
 ## Troubleshooting
 
