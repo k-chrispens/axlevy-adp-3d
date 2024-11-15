@@ -6,7 +6,7 @@
 
 [Link to the website](https://axel-levy.github.io/adp-3d/)
 
-ADP-3D (Atomic Denoising Priors for 3D Reconstruction) is a method to leverage a pretrained diffusion model in protein space as a prior to solve 3D reconstruction problems.
+ADP-3D (Atomic Denoising Priors for 3D Reconstruction) is a method for leveraging a pretrained protein diffusion model as a prior to solve 3D reconstruction problems.
 
 ![method](images/method_white.png)
 
