@@ -16,7 +16,7 @@ The current implementation uses [Chroma](https://generatebiomedicines.com/chroma
 
 Start by cloning the repo and, from the main directory, run:
 ```
-conda create --prefix adp-3d-env python=3.9
+conda create adp-3d-env python=3.9
 conda activate adp-3d-env
 pip install -r requirements.txt
 ```
@@ -35,16 +35,16 @@ We provide a structure completion example with [PDB:8ok3](https://www.rcsb.org/s
 python structure_completion.py -o /path/to/output/directory -c data/cifs/8ok3.cif --fix-every 4
 ```
 
+Once your experiment is finished, you can find the loss curves, RMSD curves and the final structure in the output directory.
+
 We also provide our implementation of the [DPS](https://openreview.net/forum?id=OnD9zGAGT0k) method, which we found to perform worse than our [DiffPIR](https://yuanzhi-zhu.github.io/DiffPIR/)-based implementation.
 
 ## Distances to Structure
 
-We provide a example for the "distances-to-structure" task with [PDB:8ok3](https://www.rcsb.org/structure/8OK3). To launch your experiment with, for example, 500 known pairwise distances, run:
+We provide an example for the "distances-to-structure" task with [PDB:8ok3](https://www.rcsb.org/structure/8OK3). To launch your experiment with, for example, 500 known pairwise distances, run:
 ```
 python distances_to_structure.py -o /path/to/output/directory -c data/cifs/8ok3.cif --n-distances 500 --lr-distance 0.4
 ```
-
-Once your experiment is finished, you can find the loss curves, RMSD curves and the final structure in the output directory.
 
 ## Model Refinement
 
@@ -61,7 +61,7 @@ python model_refinement.py -o /path/to/output/directory --mrc data/mrcs/7pzt_2.0
 ```
 We use the `unpad_len` parameter to remove empty voxels from the edges of the density map and speed up computation. Do not forget to change this parameter when using a different input density map.
 
-In the output directory, you will also find a plot showing the completeness of the model vs. RMSD:
+In the output directory, you will find a plot showing the completeness of the model vs. RMSD:
 ![rmsd](images/rmsd_ca_vs_completeness.png)
 
 ## Troubleshooting
