@@ -10,4 +10,6 @@
 /data/mrcs/*
 !/data/mrcs/7pzt_2.0A.mrc
 
+/src/__pycache__/
+
 *.sh
