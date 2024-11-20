@@ -432,7 +432,7 @@ if __name__ == "__main__":
     # genetic parameters
     parser.add_argument('--replication-factor', type=int, default=2, help='Number of replications at each selection step.')
     parser.add_argument('--activate-replication', type=int, default=1, help="Number of epochs to wait before activating the selection/replication.")
-    parser.add_argument('--select-best-every', type=int, default=500, help='Frequency (in epochs) of selection/replication.')
+    parser.add_argument('--select-best-every', type=int, default=500, help='Frequency (in epochs) of selection/replication (-1 to de-activate).')
 
     # initialization parameters
     parser.add_argument('--seed', type=int, default=0, help="Random seed.")

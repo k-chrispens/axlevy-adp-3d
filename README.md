@@ -19,6 +19,7 @@ Start by cloning the repo and, from the main directory, run:
 conda create adp-3d-env python=3.9
 conda activate adp-3d-env
 pip install -r requirements.txt
+conda install -c conda-forge ffmpeg
 ```
 
 ## Chroma API Key
@@ -32,7 +33,7 @@ python register.py --key YOUR_API_KEY
 
 We provide a structure completion example with [PDB:8ok3](https://www.rcsb.org/structure/8OK3). To launch your experiment with, for example, a sub-sampling factor of 4, run:
 ```
-python structure_completion.py -o /path/to/output/directory -c data/cifs/8ok3.cif --fix-every 4
+python structure_completion.py --outdir /path/to/output/directory --cif data/cifs/8ok3.cif --fix-every 4
 ```
 
 Once your experiment is finished, you can find the loss curves, RMSD curves and the final structure in the output directory.
@@ -43,7 +44,7 @@ We also provide our implementation of the [DPS](https://openreview.net/forum?id=
 
 We provide an example for the "distances-to-structure" task with [PDB:8ok3](https://www.rcsb.org/structure/8OK3). To launch your experiment with, for example, 500 known pairwise distances, run:
 ```
-python distances_to_structure.py -o /path/to/output/directory -c data/cifs/8ok3.cif --n-distances 500 --lr-distance 0.4
+python distances_to_structure.py --outdir /path/to/output/directory --cif data/cifs/8ok3.cif --n-distances 500 --lr-distance 0.4
 ```
 
 ## Model Refinement
@@ -57,7 +58,7 @@ An incomplete model was obtained with [ModelAngelo](https://github.com/3dem/mode
 
 To launch your experiment, run:
 ```
-python model_refinement.py -o /path/to/output/directory --mrc data/mrcs/7pzt_2.0A.mrc --ma-cif data/cifs/7pzt_MA_2.0A.cif --cif data/cifs/7pzt.cif --unpad-len 85
+python model_refinement.py --outdir /path/to/output/directory --mrc data/mrcs/7pzt_2.0A.mrc --ma-cif data/cifs/7pzt_MA_2.0A.cif --cif data/cifs/7pzt.cif --unpad-len 85
 ```
 We use the `unpad_len` parameter to remove empty voxels from the edges of the density map and speed up computation. Do not forget to change this parameter when using a different input density map.
 

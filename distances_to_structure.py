@@ -192,8 +192,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # required parameters
-    parser.add_argument('-o', '--outdir', type=str, required=True)
-    parser.add_argument('-c', '--cif', type=str, required=True)
+    parser.add_argument('--outdir', type=str, required=True)
+    parser.add_argument('--cif', type=str, required=True)
 
     # I/O parameters
     parser.add_argument('--n-distances', type=int, default=-1)
@@ -201,7 +201,7 @@ if __name__ == "__main__":
     parser.add_argument('--weights-design', type=str, default=None)
 
     # optimization parameters
-    parser.add_argument('-e', '--epochs', type=int, default=1000)
+    parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--population-size', type=int, default=8)
     parser.add_argument('--lr-distance', type=float, default=0.01)
     parser.add_argument('--rho-distance', type=float, default=0.99)

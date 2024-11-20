@@ -5,6 +5,7 @@ import numpy as np
 from scipy.linalg import svd, inv
 import pickle
 import time
+from datetime import datetime
 from chroma import Protein
 from chroma import Chroma
 from chroma.layers.structure.rmsd import CrossRMSD
@@ -189,8 +190,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # required parameters
-    parser.add_argument('-o', '--outdir', type=str, required=True)
-    parser.add_argument('-c', '--cif', type=str, required=True)
+    parser.add_argument('--outdir', type=str, required=True)
+    parser.add_argument('--cif', type=str, required=True)
 
     # I/O parameters
     parser.add_argument('--fix-every', type=int, default=2)
@@ -198,7 +199,7 @@ if __name__ == "__main__":
     parser.add_argument('--weights-design', type=str, default=None)
 
     # optimization parameters
-    parser.add_argument('-e', '--epochs', type=int, default=1000)
+    parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--population-size', type=int, default=8)
     parser.add_argument('--lr-model', type=float, default=0.3)
     parser.add_argument('--rho-model', type=float, default=0.9)
