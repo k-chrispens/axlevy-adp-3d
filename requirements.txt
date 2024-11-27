@@ -1,4 +1,4 @@
-opython==1.83
+biopython==1.83
 generate_chroma==1.0.0
 matplotlib==3.8.2
 mrcfile==1.5.0
