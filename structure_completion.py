@@ -37,7 +37,7 @@ def main(args):
     def multiply_R_inverse(X, C): return backbone_network.noise_perturb.base_gaussian._multiply_R_inverse(X, C)
 
     print("Initializing ground truth")
-    protein = Protein.from_CIF(args.cif, device='cuda')
+    protein = Protein(args.cif, device='cuda')
     X_gt, C_gt, S_gt = protein.to_XCS(all_atom=False)
     X_gt = X_gt[torch.abs(C_gt) == 1][None]
     S_gt = S_gt[torch.abs(C_gt) == 1][None]

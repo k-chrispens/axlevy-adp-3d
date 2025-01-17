@@ -41,7 +41,7 @@ def main(args):
     def multiply_covariance(dU, C): return backbone_network.noise_perturb.base_gaussian.multiply_covariance(dU, C)
 
     print("Initializing PBE solver")
-    protein = Protein.from_CIF(args.cif, device='cuda')
+    protein = Protein(args.cif, device='cuda')
     X_gt, C_gt, S_gt = protein.to_XCS(all_atom=False)  # we use X_gt to compute RMSD
     mask_gt = (C_gt == 1)[0]
     solver = RealisticSolver(

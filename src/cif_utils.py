@@ -5,16 +5,19 @@ import torch
 
 def ma_cif_to_X(path, n_residues):
     dict = MMCIF2Dict(path)
-    label_seq_id = np.array(dict['_atom_site.label_seq_id'])
+    label_seq_id = np.array(dict['_atom_site.label_seq_id'], np.int32)
     label_atom_id = np.array(dict['_atom_site.label_atom_id'])
     xs = np.array(dict['_atom_site.Cartn_x'])
     ys = np.array(dict['_atom_site.Cartn_y'])
     zs = np.array(dict['_atom_site.Cartn_z'])
 
+    label_seq_id = label_seq_id - np.min(label_seq_id) + 1
     X = torch.zeros(1, n_residues, 4, 3).float()
     mask = torch.zeros(n_residues).float()
 
     for idx, element, x, y, z in zip(label_seq_id, label_atom_id, xs, ys, zs):
+        if idx > n_residues:
+            break
         if element == 'N':
             X[0, int(idx) - 1, 0] = torch.tensor([float(x), float(y), float(z)]).float()
         if element == 'CA':
